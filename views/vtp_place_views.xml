@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Province Views -->
+    <record id="view_vtp_province_form" model="ir.ui.view">
+        <field name="name">vtp.province.form</field>
+        <field name="model">vtp.province</field>
+        <field name="arch" type="xml">
+            <form string="Tỉnh/Thành phố">
+                <sheet>
+                    <group>
+                        <field name="provinceId"/>
+                        <field name="province_name"/>
+                        <field name="province_code"/>
+                    </group>
+                    <notebook>
+                        <page string="Quận/Huyện">
+                            <field name="districtIds">
+                                <list editable="bottom">
+                                    <field name="districtId"/>
+                                    <field name="district_name"/>
+                                    <field name="district_value"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_vtp_province_list" model="ir.ui.view">
+        <field name="name">vtp.province.list</field>
+        <field name="model">vtp.province</field>
+        <field name="arch" type="xml">
+            <list string="Tỉnh/Thành phố">
+                <field name="provinceId"/>
+                <field name="province_name"/>
+                <field name="province_code"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_vtp_province_search" model="ir.ui.view">
+        <field name="name">vtp.province.search</field>
+        <field name="model">vtp.province</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm Tỉnh/Thành phố">
+                <field name="province_name"/>
+                <field name="province_code"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- District Views -->
+    <record id="view_vtp_district_form" model="ir.ui.view">
+        <field name="name">vtp.district.form</field>
+        <field name="model">vtp.district</field>
+        <field name="arch" type="xml">
+            <form string="Quận/Huyện">
+                <sheet>
+                    <group>
+                        <field name="districtId"/>
+                        <field name="district_name"/>
+                        <field name="district_value"/>
+                        <field name="provinceId"/>
+                    </group>
+                    <notebook>
+                        <page string="Phường/Xã">
+                            <field name="wardIds">
+                                <list>
+                                    <field name="wardId"/>
+                                    <field name="ward_name"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_vtp_district_list" model="ir.ui.view">
+        <field name="name">vtp.district.list</field>
+        <field name="model">vtp.district</field>
+        <field name="arch" type="xml">
+            <list string="Quận/Huyện">
+                <field name="districtId"/>
+                <field name="district_name"/>
+                <field name="district_value"/>
+                <field name="provinceId"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_vtp_district_search" model="ir.ui.view">
+        <field name="name">vtp.district.search</field>
+        <field name="model">vtp.district</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm Quận/Huyện">
+                <field name="district_name"/>
+                <field name="provinceId"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Ward Views -->
+    <record id="view_vtp_ward_form" model="ir.ui.view">
+        <field name="name">vtp.ward.form</field>
+        <field name="model">vtp.ward</field>
+        <field name="arch" type="xml">
+            <form string="Phường/Xã">
+                <sheet>
+                    <group>
+                        <field name="wardId"/>
+                        <field name="ward_name"/>
+                        <field name="districtId"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_vtp_ward_list" model="ir.ui.view">
+        <field name="name">vtp.ward.list</field>
+        <field name="model">vtp.ward</field>
+        <field name="arch" type="xml">
+            <list string="Phường/Xã">
+                <field name="wardId"/>
+                <field name="ward_name"/>
+                <field name="districtId"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_vtp_ward_search" model="ir.ui.view">
+        <field name="name">vtp.ward.search</field>
+        <field name="model">vtp.ward</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm Phường/Xã">
+                <field name="ward_name"/>
+                <field name="districtId"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_vtp_province" model="ir.actions.act_window">
+        <field name="name">Tỉnh/Thành phố</field>
+        <field name="res_model">vtp.province</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_vtp_province_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tạo Tỉnh/Thành phố mới
+            </p>
+        </field>
+    </record>
+
+    <record id="action_vtp_district" model="ir.actions.act_window">
+        <field name="name">Quận/Huyện</field>
+        <field name="res_model">vtp.district</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_vtp_district_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tạo Quận/Huyện mới
+            </p>
+        </field>
+    </record>
+
+    <record id="action_vtp_ward" model="ir.actions.act_window">
+        <field name="name">Phường/Xã</field>
+        <field name="res_model">vtp.ward</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_vtp_ward_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tạo Phường/Xã mới
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_vtp_place"
+              name="Địa điểm"
+              parent="menu_viettelpost_root"
+              sequence="20"/>
+
+    <menuitem id="menu_vtp_province"
+              name="Tỉnh/Thành phố"
+              parent="menu_vtp_place"
+              action="action_vtp_province"
+              sequence="10"/>
+
+    <menuitem id="menu_vtp_district"
+              name="Quận/Huyện"
+              parent="menu_vtp_place"
+              action="action_vtp_district"
+              sequence="20"/>
+
+    <menuitem id="menu_vtp_ward"
+              name="Phường/Xã"
+              parent="menu_vtp_place"
+              action="action_vtp_ward"
+              sequence="30"/>
+</odoo>

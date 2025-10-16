@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vtp_service_bill_form" model="ir.ui.view">
+        <field name="name">vtp.service.bill.form</field>
+        <field name="model">vtp.service.bill</field>
+        <field name="arch" type="xml">
+            <form string="Service Bill">
+                <field name="service_name"/>
+                <field name="service_code"/>                
+            </form>
+        </field>
+    </record>
+    <record id="view_vtp_service_bill_list" model="ir.ui.view">
+        <field name="name">vtp.service.bill.list</field>
+        <field name="model">vtp.service.bill</field>
+        <field name="arch" type="xml">
+            <list string="Service Bills">
+                <field name="service_name"/>
+                <field name="service_code"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_vtp_service_bill" model="ir.actions.act_window">
+        <field name="name">Service Bills</field>
+        <field name="res_model">vtp.service.bill</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_vtp_service_bill" name="Service Bills" action="action_vtp_service_bill" parent="menu_viettelpost_root"/>
+</odoo>

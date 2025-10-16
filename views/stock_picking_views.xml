@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Stock Picking Form View -->
+    <record id="view_picking_form_viettelpost" model="ir.ui.view">
+        <field name="name">stock.picking.form.viettelpost</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                
+                <button name="%(viettelpost.action_vtp_update_bill_wizard)d"
+                        string="Chỉnh sửa vận đơn"
+                        type="action"
+                        class="btn-primary"
+                        context="{'default_picking_id': id}"
+                        invisible="picking_type_code != 'outgoing' or vtp_state == 'draft' or state != 'done'"/>
+
+                <button name="%(viettelpost.action_vtp_update_bill_status_wizard)d"
+                        string="Trạng thái vận đơn"
+                        type="action"
+                        class="btn-primary"
+                        context="{'default_picking_id': id}"
+                        invisible="picking_type_code != 'outgoing' or vtp_state == 'draft' or state != 'done'"/>
+                
+                <!-- Smart button: Vận đơn VTP -->
+                <!-- <button type="action"
+                        name="%(viettelpost.action_vtp_order_bill)d"
+                        class="oe_stat_button"
+                        icon="fa-truck">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Vận đơn VTP</span>
+                    </div>
+                </button> -->
+
+                <!-- Smart button: Lịch sử vận đơn VTP -->
+                <!-- <button type="action"
+                        name="%(viettelpost.action_vtp_order_bill_history)d"
+                        class="oe_stat_button"                        
+                        icon="fa-history">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Lịch sử vận đơn VTP</span>
+                    </div>
+                </button> -->
+            </xpath>
+            
+            <xpath expr="header" position="inside">
+                <button name="%(viettelpost.action_vtp_print_bill)d" string="In Phiếu ViettelPost" type="action"
+                        class="btn-primary" context="{'default_picking_id': id}" invisible = "picking_type_code != 'outgoing' or vtp_state == 'draft'"/>
+                <button name="%(viettelpost.action_vtp_create_bill_wizard)d" 
+                        string="Tạo vận đơn ViettelPost" 
+                        type="action"                         
+                        class="btn-primary" 
+                        context="{'default_picking_id': id}" 
+                        invisible="picking_type_code != 'outgoing' or vtp_state != 'draft' or state != 'done'"/>
+            </xpath>
+
+            <xpath expr="//sheet/group/group/field[@name='origin']" position="after">
+                <field name="vtp_order_number" invisible="vtp_state == 'draft'"/>
+                <field name="vtp_status_name" invisible="vtp_state == 'draft'"/>
+            </xpath>
+            
+            <notebook position="inside">
+                <page string="Lịch sử vận đơn VTP">
+                    <group col="2">
+                        <field name="vtp_order_bill_history_ids" nolabel="1" readonly="1" force_save="1">
+                            <list>
+                                <field name="order_number"/>
+                                <field name="order_reference"/>
+                                <field name="order_status_date"/>
+                                <field name="order_status"/>
+                                <field name="location_currently"/>
+                                <field name="money_collection"/>
+                                <field name="note"/>
+                                <field name="money_feecod"/>
+                                <field name="money_totalfee"/>
+                                <field name="money_total"/>
+                                <field name="money_totalvat"/>
+                                <field name="receiver_fullname"/>
+                            </list>
+                        </field>
+                    </group>
+                                        
+                </page>
+            </notebook>   
+            
+        </field>
+    </record>
+
+</odoo>

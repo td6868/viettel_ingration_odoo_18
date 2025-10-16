@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Stock Picking Form View -->
+    <record id="view_sale_order_form_viettelpost" model="ir.ui.view">
+        <field name="name">sale.order.form.viettelpost</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="%(viettelpost.action_vtp_check_fee_wizard)d" string="Tra cước ViettelPost" type="action"
+                        class="btn-primary" context="{'default_sale_order_id': id}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

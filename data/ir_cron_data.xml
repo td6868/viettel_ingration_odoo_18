@@ -1,0 +1,15 @@
+<!-- <?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Cron job để cập nhật trạng thái vận đơn ViettelPost -->
+        <record id="ir_cron_viettelpost_update_bill_status" model="ir.cron">
+            <field name="name">ViettelPost: Cập nhật trạng thái vận đơn</field>
+            <field name="model_id" ref="model_vtp_service"/>
+            <field name="state">code</field>
+            <field name="code">model.update_all_bills_status()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo> -->

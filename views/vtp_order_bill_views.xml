@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- vtp.order.bill: list View -->
+    <record id="vtp_order_bill_view_list" model="ir.ui.view">
+        <field name="name">vtp.order.bill.view.list</field>
+        <field name="model">vtp.order.bill</field>
+        <field name="arch" type="xml">
+            <list string="Vận đơn ViettelPost">
+                <field name="name"/>
+                <field name="order_id"/>
+                <field name="sale_id"/>
+                <field name="store_id"/>
+                <field name="order_number"/>
+                <field name="status_name"/>
+                <field name="expected_delivery_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- vtp.order.bill: Form View -->
+    <record id="vtp_order_bill_view_form" model="ir.ui.view">
+        <field name="name">vtp.order.bill.view.form</field>
+        <field name="model">vtp.order.bill</field>
+        <field name="arch" type="xml">
+            <form string="Vận đơn ViettelPost">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Mã đơn hàng"/></h1>
+                        <div class="oe_inline">
+                            <field name="status_name" readonly="1"/>
+                            <label for="status_name" string="Trạng thái"/>
+                        </div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="order_id"/>
+                            <field name="sale_id"/>
+                            <field name="store_id"/>
+                        </group>
+                        <group>
+                            <field name="order_number"/>
+                            <field name="expected_delivery_date"/>
+                        </group>
+                        <group>
+                            <field name="vtp_order_status"/>
+                            <field name="vtp_money_collection"/>
+                            <field name="vtp_money_total"/>
+                            <field name="vtp_money_totalfee"/>
+                        </group>
+
+                    </group>
+                    <notebook>
+                        <!-- <page string="Dịch vụ/Giá cước">
+                            <field name="vtp_pricing_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="service_code"/>
+                                    <field name="money_total_old"/>
+                                    <field name="money_total"/>
+                                    <field name="money_total_fee"/>
+                                    <field name="money_fee"/>
+                                    <field name="money_collection_fee"/>
+                                    <field name="money_other_fee"/>
+                                    <field name="money_vas"/>
+                                    <field name="money_vat"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <group>
+                                            <field name="name"/>
+                                            <field name="service_code"/>
+                                            <field name="vtp_response" widget="text"/>
+                                        </group>
+                                        <group>
+                                            <field name="money_total_old"/>
+                                            <field name="money_total"/>
+                                            <field name="money_total_fee"/>
+                                            <field name="money_fee"/>
+                                            <field name="money_collection_fee"/>
+                                            <field name="money_other_fee"/>
+                                            <field name="money_vas"/>
+                                            <field name="money_vat"/>
+                                        </group>
+                                    </group>
+                                </form>
+                            </field>
+                        </page> -->
+                        <page string="Lịch sử vận đơn">
+                            <field name="bill_history_ids">
+                                <list>
+                                    <field name="order_status_date"/>
+                                    <field name="status_name"/>
+                                    <field name="order_number"/>
+                                    <field name="location_currently"/>
+                                    <field name="money_collection"/>
+                                    <field name="note"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <group>
+                                            <field name="order_status_date"/>
+                                            <field name="status_name"/>
+                                            <field name="order_status"/>
+                                            <field name="expected_delivery_date"/>
+                                            <field name="location_currently"/>
+                                            <field name="order_payment"/>
+                                        </group>
+                                        <group>
+                                            <field name="order_number"/>
+                                            <field name="order_reference"/>
+                                            <field name="product_weight"/>
+                                            <field name="receiver_fullname"/>
+                                            <field name="order_service"/>
+                                        </group>
+                                    </group>
+                                    <group>
+                                        <group>
+                                            <field name="money_collection"/>
+                                            <field name="money_feecod"/>
+                                            <field name="money_totalfee"/>
+                                            <field name="money_total"/>
+                                            <field name="money_totalvat"/>
+                                        </group>
+                                    </group>
+                                    <group>
+                                        <field name="note" widget="text"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- vtp.order.bill: Search View -->
+    <record id="vtp_order_bill_view_search" model="ir.ui.view">
+        <field name="name">vtp.order.bill.view.search</field>
+        <field name="model">vtp.order.bill</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm vận đơn">
+                <field name="name"/>
+                <field name="order_id"/>
+                <field name="sale_id"/>
+                <field name="store_id"/>
+                <field name="order_number"/>
+                <group expand="0" string="Group By">
+                    <filter string="Trạng thái" name="group_by_status" context="{'group_by': 'status_name'}"/>
+                    <filter string="Store" name="group_by_store" context="{'group_by': 'store_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for vtp.order.bill -->
+    <record id="action_vtp_order_bill" model="ir.actions.act_window">
+        <field name="name">Vận đơn ViettelPost</field>
+        <field name="res_model">vtp.order.bill</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="vtp_order_bill_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có vận đơn ViettelPost nào.</p>
+        </field>
+    </record>
+
+    <!-- Menu for vtp.order.bill -->
+    <menuitem id="menu_vtp_order_bill" name="Vận đơn ViettelPost"
+              parent="viettelpost.menu_viettelpost_root"
+              action="action_vtp_order_bill" sequence="20"/>
+
+    <!-- vtp.order.bill.history: list View -->
+    <record id="vtp_order_bill_history_view_list" model="ir.ui.view">
+        <field name="name">vtp.order.bill.history.view.list</field>
+        <field name="model">vtp.order.bill.history</field>
+        <field name="arch" type="xml">
+            <list string="Lịch sử vận đơn VTP">
+                <field name="order_status_date"/>
+                <field name="status_name"/>
+                <field name="order_number"/>
+                <field name="order_reference"/>
+                <field name="location_currently"/>
+                <field name="money_collection"/>
+                <field name="money_totalfee"/>
+                <field name="note"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- vtp.order.bill.history: Form View -->
+    <record id="vtp_order_bill_history_view_form" model="ir.ui.view">
+        <field name="name">vtp.order.bill.history.view.form</field>
+        <field name="model">vtp.order.bill.history</field>
+        <field name="arch" type="xml">
+            <form string="Lịch sử vận đơn VTP">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="order_id"/>
+                            <field name="bill_id"/>
+                            <field name="order_status_date"/>
+                            <field name="status_name"/>
+                            <field name="order_status"/>
+                        </group>
+                        <group>
+                            <field name="order_number"/>
+                            <field name="order_reference"/>
+                            <field name="expected_delivery_date"/>
+                            <field name="location_currently"/>
+                            <field name="order_payment"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="product_weight"/>
+                            <field name="receiver_fullname"/>
+                            <field name="order_service"/>
+                        </group>
+                        <group>
+                            <field name="money_collection"/>
+                            <field name="money_feecod"/>
+                            <field name="money_totalfee"/>
+                            <field name="money_total"/>
+                            <field name="money_totalvat"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="note" widget="text"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- vtp.order.bill.history: Search View -->
+    <record id="vtp_order_bill_history_view_search" model="ir.ui.view">
+        <field name="name">vtp.order.bill.history.view.search</field>
+        <field name="model">vtp.order.bill.history</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm lịch sử vận đơn">
+                <field name="order_id"/>
+                <field name="bill_id"/>
+                <field name="order_number"/>
+                <field name="status_name"/>
+                <group expand="0" string="Group By">
+                    <filter string="Đơn giao" name="group_by_order" context="{'group_by': 'order_id'}"/>
+                    <filter string="Mã vận đơn" name="group_by_bill" context="{'group_by': 'bill_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for vtp.order.bill.history -->
+    <record id="action_vtp_order_bill_history" model="ir.actions.act_window">
+        <field name="name">Lịch sử vận đơn VTP</field>
+        <field name="res_model">vtp.order.bill.history</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="vtp_order_bill_history_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có lịch sử vận đơn.</p>
+        </field>
+    </record>
+
+    <!-- Menu for history -->
+    <menuitem id="menu_vtp_order_bill_history" name="Lịch sử vận đơn VTP"
+              parent="menu_viettelpost_root"
+              action="action_vtp_order_bill_history" sequence="21"/>
+</odoo>

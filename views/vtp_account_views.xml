@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- VTP Account Form View -->
+    <record id="view_vtp_account_form" model="ir.ui.view">
+        <field name="name">vtp.account.form</field>
+        <field name="model">vtp.account</field>
+        <field name="arch" type="xml">
+            <form string="Tài khoản ViettelPost">
+                <header>
+                    <button name="action_get_token" string="Lấy token mới" type="object" class="btn-primary"/>
+                    <button name="action_sync_stores" string="Đồng bộ Store" type="object" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Tên tài khoản"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="username"/>
+                            <field name="password" password="True"/>
+                        </group>
+                        <group>
+                            <field name="client_id"/>
+                            <field name="client_secret" password="True"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="token" readonly="1" invisible="1"/>
+                            <field name="token_expiry" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Danh sách Store">
+                            <field name="store_ids">
+                                <list editable="bottom">
+                                    <field name="store_id"/>
+                                    <field name="name"/>
+                                    <field name="phone"/>
+                                    <field name="address"/>
+                                    <field name="is_default"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- VTP Account Tree View -->
+    <record id="view_vtp_account_list" model="ir.ui.view">
+        <field name="name">vtp.account.list</field>
+        <field name="model">vtp.account</field>
+        <field name="arch" type="xml">
+            <list string="Tài khoản ViettelPost">
+                <field name="name"/>
+                <field name="username"/>
+                <field name="token_expiry"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- VTP Account Search View -->
+    <record id="view_vtp_account_search" model="ir.ui.view">
+        <field name="name">vtp.account.search</field>
+        <field name="model">vtp.account</field>
+        <field name="arch" type="xml">
+            <search string="Tìm kiếm tài khoản ViettelPost">
+                <field name="name"/>
+                <field name="username"/>
+                <filter string="Hoạt động" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- VTP Account Action -->
+    <record id="action_vtp_account" model="ir.actions.act_window">
+        <field name="name">Tài khoản ViettelPost</field>
+        <field name="res_model">vtp.account</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_vtp_account_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tạo tài khoản ViettelPost mới
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_vtp_account"
+              name="Tài khoản VTP"
+              parent="menu_viettelpost_root"
+              action="action_vtp_account"
+              sequence="20"/>
+</odoo>
