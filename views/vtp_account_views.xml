@@ -99,5 +99,6 @@
               name="Tài khoản VTP"
               parent="menu_viettelpost_root"
               action="action_vtp_account"
+              groups="viettel_ingration_odoo_18.group_viettel_post_admin"
               sequence="20"/>
 </odoo>

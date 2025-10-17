@@ -23,12 +23,12 @@ class VTPAccount(models.Model):
         VTPService = self.env['vtp.service']
         for account in self:
             # Lưu thông tin tài khoản tạm thời vào config parameter
-            self.env['ir.config_parameter'].sudo().set_param('viettelpost.username', account.username)
-            self.env['ir.config_parameter'].sudo().set_param('viettelpost.password', account.password)
+            self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.username', account.username)
+            self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.password', account.password)
             if account.client_id:
-                self.env['ir.config_parameter'].sudo().set_param('viettelpost.client_id', account.client_id)
+                self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.client_id', account.client_id)
             if account.client_secret:
-                self.env['ir.config_parameter'].sudo().set_param('viettelpost.client_secret', account.client_secret)
+                self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.client_secret', account.client_secret)
                 
             # Lấy token
             result = VTPService.get_token()
@@ -70,12 +70,12 @@ class VTPAccount(models.Model):
 
         for account in self:
             # set tạm credential
-            self.env['ir.config_parameter'].sudo().set_param('viettelpost.username', account.username)
-            self.env['ir.config_parameter'].sudo().set_param('viettelpost.password', account.password)
+            self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.username', account.username)
+            self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.password', account.password)
             if account.token:
-                self.env['ir.config_parameter'].sudo().set_param('viettelpost.token', account.token)
+                self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.token', account.token)
                 self.env['ir.config_parameter'].sudo().set_param(
-                    'viettelpost.token_expiry',
+                    'viettel_ingration_odoo_18.token_expiry',
                     account.token_expiry if account.token_expiry else ''
                 )
 
@@ -189,7 +189,7 @@ class VTPStore(models.Model):
         self.search([('is_default', '=', True)]).write({'is_default': False})
         self.write({'is_default': True})
         # Cập nhật cấu hình
-        self.env['ir.config_parameter'].sudo().set_param('viettelpost.default_store_id', self.id)
+        self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.default_store_id', self.id)
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',

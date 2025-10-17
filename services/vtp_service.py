@@ -22,14 +22,14 @@ class VTPService(models.AbstractModel):
     @api.model
     def _get_api_url(self):
         """Lấy URL API dựa trên môi trường cấu hình"""
-        env = self.env['ir.config_parameter'].sudo().get_param('viettelpost.environment', 'test')
+        env = self.env['ir.config_parameter'].sudo().get_param('viettel_ingration_odoo_18.environment', 'test')
         return API_ENDPOINTS.get(env, API_ENDPOINTS['test'])
 
     @api.model
     def _get_token(self):
         """Lấy token hiện tại hoặc tạo mới nếu hết hạn"""
-        token = self.env['ir.config_parameter'].sudo().get_param('viettelpost.token')
-        expiry_str = self.env['ir.config_parameter'].sudo().get_param('viettelpost.token_expiry')
+        token = self.env['ir.config_parameter'].sudo().get_param('viettel_ingration_odoo_18.token')
+        expiry_str = self.env['ir.config_parameter'].sudo().get_param('viettel_ingration_odoo_18.token_expiry')
         
         if token and expiry_str:
             if int(expiry_str) > int(datetime.now().timestamp()):
@@ -41,8 +41,8 @@ class VTPService(models.AbstractModel):
     @api.model
     def get_token(self):
         """Lấy token từ API ViettelPost"""
-        username = self.env['ir.config_parameter'].sudo().get_param('viettelpost.username')
-        password = self.env['ir.config_parameter'].sudo().get_param('viettelpost.password')
+        username = self.env['ir.config_parameter'].sudo().get_param('viettel_ingration_odoo_18.username')
+        password = self.env['ir.config_parameter'].sudo().get_param('viettel_ingration_odoo_18.password')
         
         if not username or not password:
             raise UserError(_('Vui lòng cấu hình tài khoản ViettelPost!'))
@@ -65,8 +65,8 @@ class VTPService(models.AbstractModel):
                 token = result['data']['token']
                 # Lưu token với thời hạn 24 giờ
                 expiry = result['data']['expired']
-                self.env['ir.config_parameter'].sudo().set_param('viettelpost.token', token)
-                self.env['ir.config_parameter'].sudo().set_param('viettelpost.token_expiry', expiry)
+                self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.token', token)
+                self.env['ir.config_parameter'].sudo().set_param('viettel_ingration_odoo_18.token_expiry', expiry)
                 return {'token': token, 'expiry': expiry}
             else:
                 _logger.error("ViettelPost API Error: %s", result.get('message', 'Unknown error'))

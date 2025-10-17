@@ -27,5 +27,5 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <menuitem id="menu_vtp_service_bill" name="Service Bills" action="action_vtp_service_bill" parent="menu_viettelpost_root"/>
+    <menuitem id="menu_vtp_service_bill" name="Service Bills" action="action_vtp_service_bill" parent="menu_viettelpost_root" groups="viettel_ingration_odoo_18.group_viettel_post_admin"/>
 </odoo>

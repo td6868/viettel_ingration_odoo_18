@@ -23,8 +23,6 @@
         'delivery',
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'security/groups.xml',
         # 'data/ir_cron_data.xml',
         'views/vtp_store_views.xml',
         'views/vtp_account_views.xml',
@@ -38,6 +36,9 @@
         'views/stock_picking_views.xml',
         
         'views/sale_order_views.xml',
+        'security/ir.model.access.csv',
+        'security/groups.xml',
+
     ],
     'installable': True,
     'application': False,

@@ -103,6 +103,10 @@
     </record>
 
     <!-- Menu Item -->
-    <menuitem id="menu_viettelpost_root" name="ViettelPost" sequence="100"/>
-    <menuitem id="menu_vtp_store" name="Store ViettelPost" parent="menu_viettelpost_root" action="action_vtp_store" sequence="10"/>
+    <menuitem id="menu_viettelpost_root" 
+        name="ViettelPost" 
+        web_icon="viettel_ingration_odoo_18,static/description/vtp.png"
+        groups="viettel_ingration_odoo_18.group_viettel_post_admin"
+        sequence="100"/>
+    <menuitem id="menu_vtp_store" name="Store ViettelPost" parent="menu_viettelpost_root" action="action_vtp_store" groups="viettel_ingration_odoo_18.group_viettel_post_admin" sequence="10"/>
 </odoo>

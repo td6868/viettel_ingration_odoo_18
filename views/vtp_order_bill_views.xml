@@ -50,41 +50,7 @@
 
                     </group>
                     <notebook>
-                        <!-- <page string="Dịch vụ/Giá cước">
-                            <field name="vtp_pricing_ids">
-                                <list editable="bottom">
-                                    <field name="name"/>
-                                    <field name="service_code"/>
-                                    <field name="money_total_old"/>
-                                    <field name="money_total"/>
-                                    <field name="money_total_fee"/>
-                                    <field name="money_fee"/>
-                                    <field name="money_collection_fee"/>
-                                    <field name="money_other_fee"/>
-                                    <field name="money_vas"/>
-                                    <field name="money_vat"/>
-                                </list>
-                                <form>
-                                    <group>
-                                        <group>
-                                            <field name="name"/>
-                                            <field name="service_code"/>
-                                            <field name="vtp_response" widget="text"/>
-                                        </group>
-                                        <group>
-                                            <field name="money_total_old"/>
-                                            <field name="money_total"/>
-                                            <field name="money_total_fee"/>
-                                            <field name="money_fee"/>
-                                            <field name="money_collection_fee"/>
-                                            <field name="money_other_fee"/>
-                                            <field name="money_vas"/>
-                                            <field name="money_vat"/>
-                                        </group>
-                                    </group>
-                                </form>
-                            </field>
-                        </page> -->
+                        
                         <page string="Lịch sử vận đơn">
                             <field name="bill_history_ids">
                                 <list>
@@ -166,7 +132,7 @@
 
     <!-- Menu for vtp.order.bill -->
     <menuitem id="menu_vtp_order_bill" name="Vận đơn ViettelPost"
-              parent="viettelpost.menu_viettelpost_root"
+              parent="viettel_ingration_odoo_18.menu_viettelpost_root"
               action="action_vtp_order_bill" sequence="20"/>
 
     <!-- vtp.order.bill.history: list View -->

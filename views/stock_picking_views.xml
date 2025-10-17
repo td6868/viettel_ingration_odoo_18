@@ -8,45 +8,26 @@
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
                 
-                <button name="%(viettelpost.action_vtp_update_bill_wizard)d"
+                <button name="%(viettel_ingration_odoo_18.action_vtp_update_bill_wizard)d"
                         string="Chỉnh sửa vận đơn"
                         type="action"
                         class="btn-primary"
                         context="{'default_picking_id': id}"
                         invisible="picking_type_code != 'outgoing' or vtp_state == 'draft' or state != 'done'"/>
 
-                <button name="%(viettelpost.action_vtp_update_bill_status_wizard)d"
+                <button name="%(viettel_ingration_odoo_18.action_vtp_update_bill_status_wizard)d"
                         string="Trạng thái vận đơn"
                         type="action"
                         class="btn-primary"
                         context="{'default_picking_id': id}"
                         invisible="picking_type_code != 'outgoing' or vtp_state == 'draft' or state != 'done'"/>
                 
-                <!-- Smart button: Vận đơn VTP -->
-                <!-- <button type="action"
-                        name="%(viettelpost.action_vtp_order_bill)d"
-                        class="oe_stat_button"
-                        icon="fa-truck">
-                    <div class="o_stat_info">
-                        <span class="o_stat_text">Vận đơn VTP</span>
-                    </div>
-                </button> -->
-
-                <!-- Smart button: Lịch sử vận đơn VTP -->
-                <!-- <button type="action"
-                        name="%(viettelpost.action_vtp_order_bill_history)d"
-                        class="oe_stat_button"                        
-                        icon="fa-history">
-                    <div class="o_stat_info">
-                        <span class="o_stat_text">Lịch sử vận đơn VTP</span>
-                    </div>
-                </button> -->
             </xpath>
             
             <xpath expr="header" position="inside">
-                <button name="%(viettelpost.action_vtp_print_bill)d" string="In Phiếu ViettelPost" type="action"
+                <button name="%(viettel_ingration_odoo_18.action_vtp_print_bill)d" string="In Phiếu ViettelPost" type="action"
                         class="btn-primary" context="{'default_picking_id': id}" invisible = "picking_type_code != 'outgoing' or vtp_state == 'draft'"/>
-                <button name="%(viettelpost.action_vtp_create_bill_wizard)d" 
+                <button name="%(viettel_ingration_odoo_18.action_vtp_create_bill_wizard)d" 
                         string="Tạo vận đơn ViettelPost" 
                         type="action"                         
                         class="btn-primary" 
