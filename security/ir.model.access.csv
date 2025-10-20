@@ -13,6 +13,7 @@ access_vtp_check_fee_wizard_manager,vtp.check.fee.wizard.manager,model_vtp_check
 access_vtp_update_bill_wizard_manager,vtp.update.bill.wizard.manager,model_vtp_update_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_admin,1,1,1,1
 access_vtp_update_bill_status_wizard_manager,vtp.update.bill.status.wizard.manager,model_vtp_update_bill_status_wizard,viettel_ingration_odoo_18.group_viettel_post_admin,1,1,1,1
 access_vtp_print_bill_wizard_manager,vtp.print.bill.wizard.manager,model_vtp_print_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_admin,1,1,1,1
+access_vtp_create_bill_wizard_manager,vtp.create.bill.wizard.manager,model_vtp_create_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_admin,1,1,1,1
 
 access_vtp_order_bill_user,vtp.order.bill.user,model_vtp_order_bill,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
 access_vtp_order_bill_history_user,vtp.order.bill.history.user,model_vtp_order_bill_history,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
@@ -20,3 +21,4 @@ access_vtp_check_fee_wizard_user,vtp.check.fee.wizard.user,model_vtp_check_fee_w
 access_vtp_update_bill_wizard_user,vtp.update.bill.wizard.user,model_vtp_update_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
 access_vtp_update_bill_status_wizard_user,vtp.update.bill.status.wizard.user,model_vtp_update_bill_status_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
 access_vtp_print_bill_wizard_user,vtp.print.bill.wizard.user,model_vtp_print_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
+access_vtp_create_bill_wizard_user,vtp.create.bill.wizard.user,model_vtp_create_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1

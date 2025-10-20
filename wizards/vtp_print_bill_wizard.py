@@ -18,7 +18,7 @@ class VTPPrintBillWizard(models.TransientModel):
 
     picking_id = fields.Many2one('stock.picking', string='Phiếu xuất kho', required=True)
     order_bill_id = fields.Many2one('vtp.order.bill', string='Vận đơn ViettelPost', required=True)
-    order_number = fields.Char(string='Số vận đơn', related='order_bill_id.order_number', readonly=True)
+    order_number = fields.Char(string='Số vận đơn', related='picking_id.vtp_order_number', readonly=True)
     token_expiry = fields.Char(string='Hết hạn token', related='order_bill_id.store_id.account_id.token_expiry', readonly=True)
 
     @api.onchange('picking_id')
@@ -68,12 +68,12 @@ class VTPPrintBillWizard(models.TransientModel):
         # Kiểm tra dữ liệu bắt buộc
         if not self.order_bill_id:
             raise UserError(_('Không tìm thấy vận đơn ViettelPost cho phiếu này.'))
-        if not self.order_bill_id.order_number:
+        if not self.picking_id.vtp_order_number:
             raise UserError(_('Vận đơn chưa có mã ORDER_NUMBER. Vui lòng tạo vận đơn trước khi in.'))
 
         data = {
             'EXPIRY_TIME': self.token_expiry,
-            'ORDER_ARRAY': [self.order_bill_id.order_number],
+            'ORDER_ARRAY': [self.picking_id.vtp_order_number],
         }
 
         _logger.info("Token expiry: %s", self.token_expiry) 

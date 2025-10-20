@@ -38,10 +38,10 @@ class VTPUpdateBillWizard(models.TransientModel):
             
             # Lấy mã vận đơn từ vtp.order.bill
             order_bill = self.env['vtp.order.bill'].search([('order_id', '=', picking.id)], limit=1)
-            if order_bill and order_bill.order_number:
+            if order_bill and picking.vtp_order_number:
                 res.update({
                     'picking_id': picking.id,
-                    'order_number': order_bill.order_number,
+                    'order_number': picking.vtp_order_number,
                     'vtp_state': picking.vtp_state,
                 })
             else:
