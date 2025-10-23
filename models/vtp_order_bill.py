@@ -269,3 +269,9 @@ class VtpStockPicking(models.Model):
     ], string='Trạng thái', default='draft')
     vtp_order_number = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True)
     vtp_status_name = fields.Char(string='Trạng thái vận đơn', copy=False, readonly=True)
+
+class VtpSaleOrder(models.Model):
+    _inherit = 'sale.order'
+    
+    vtp_id = fields.Many2one('vtp.order.bill', string='Vận đơn VTP')
+    vtp_store_id = fields.Many2one('vtp.store', string='Store ViettelPost')

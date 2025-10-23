@@ -134,7 +134,7 @@ class VTPUpdateBillWizard(models.TransientModel):
 
         # Chuẩn bị dữ liệu giống tạo vận đơn
         data = {
-            'ORDER_NUMBER': self.order_number,
+            'ORDER_NUMBER': self.picking_id.vtp_order_number,
             'GROUPADDRESS_ID': '',
             'CUS_ID': '',
             'SENDER_FULLNAME': self.store_id.name,
@@ -146,7 +146,7 @@ class VTPUpdateBillWizard(models.TransientModel):
             'RECEIVER_PHONE': self.receiver_phone,
             'ORDER_PAYMENT': int(self.order_payment),
             'ORDER_SERVICE': self.service_type.service_code,
-            'PRODUCT_TYPE': 'HH'
+            'PRODUCT_TYPE': 'HH',
         }
 
         # Thêm kích thước nếu có

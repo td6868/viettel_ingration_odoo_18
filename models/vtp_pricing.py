@@ -7,6 +7,8 @@ class VtpPricing(models.Model):
     store_id = fields.Many2one('vtp.store', string='ID cửa hàng', required=True)
     service_code = fields.Many2one('vtp.service.bill', string='Mã dịch vụ')
     sale_id = fields.Many2one('sale.order', related='order_id.sale_id', store=True)
+    # Liên kết trực tiếp với Sales Order (không phụ thuộc vào vtp.order.bill)
+    sale_order_id = fields.Many2one('sale.order', string='Đơn bán', index=True)
     order_id = fields.Many2one('vtp.order.bill', string='Phiếu giao hàng')
     
     name = fields.Char(string='Tên', required=True)

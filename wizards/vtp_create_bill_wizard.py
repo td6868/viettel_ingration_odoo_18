@@ -137,6 +137,8 @@ class VTPCreateBillWizard(models.TransientModel):
                 }
             }
         else:
+            if result.get('error') == 'ViettelPost API Error: Price does not apply to this itinerary!':
+                raise UserError('Giá không áp dụng cho tuyến này!')
             raise UserError(f"Không thể tạo vận đơn. Chi tiết: {result.get('error', 'Unknown error')}")
 
 class VTPCheckFeeWizard(models.TransientModel):
@@ -159,6 +161,34 @@ class VTPCheckFeeWizard(models.TransientModel):
     money_vas = fields.Integer(related='pricing_id.money_vas', readonly=True)
     money_vat = fields.Integer(related='pricing_id.money_vat', readonly=True)
     kpi_ht = fields.Integer(related='pricing_id.kpi_ht', readonly=True)
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        # Prefill from active Sale Order and load last pricing
+        if self._context.get('active_model') == 'sale.order' and self._context.get('active_id'):
+            so = self.env['sale.order'].browse(self._context.get('active_id'))
+            if so:
+                res.update({'sale_order_id': so.id, 'partner_id': so.partner_id.id})
+                # Lấy pricing gần nhất
+                last_pricing = self.env['vtp.pricing'].search([
+                    ('sale_order_id', '=', so.id)
+                ], order='create_date desc', limit=1)
+
+                # Chọn store ưu tiên theo thứ tự: SO.vtp_store_id -> last_pricing.store_id
+                pref_store = so.vtp_store_id or (last_pricing.store_id if last_pricing else False)
+                if pref_store:
+                    res.update({
+                        'store_id': pref_store.id,
+                        'account_id': pref_store.account_id.id if pref_store.account_id else False,
+                    })
+
+                if last_pricing:
+                    res.update({
+                        'pricing_id': last_pricing.id,
+                        'service_type': last_pricing.service_code,
+                    })
+        return res
 
     @api.onchange('account_id')
     def _onchange_account_id_fee(self):
@@ -202,6 +232,13 @@ class VTPCheckFeeWizard(models.TransientModel):
             self.product_weight = total_weight
             self.cod_amount = total_price
 
+            # Nạp lại kết quả tra phí gần nhất nếu có
+            last_pricing = self.env['vtp.pricing'].search([
+                ('sale_order_id', '=', so.id)
+            ], order='create_date desc', limit=1)
+            if last_pricing:
+                self.pricing_id = last_pricing.id
+
     def action_calculate_fee(self):
         self.ensure_one()
         if not self.store_id or not self.receiver_province_id or not self.receiver_district_id:
@@ -230,32 +267,55 @@ class VTPCheckFeeWizard(models.TransientModel):
         _logger.info("Dữ liệu gửi lên API tính phí (SO): %s", data)
         VTPService = self.env['vtp.service']
         result = VTPService.calculate_fee(data)
-        if result:
-            pricing_vals = {
-                'name': self.sale_order_id.name or _('Tra cước'),
-                'store_id': self.store_id.id,
-                'service_code': self.service_type.id if self.service_type else False,
-                'money_total_old': result.get('MONEY_TOTAL', 0.0),
-                'money_total': result.get('MONEY_TOTAL', 0.0),
-                'money_total_fee': result.get('MONEY_TOTAL_FEE', 0.0),
-                'money_fee': result.get('MONEY_FEE', 0.0),
-                'money_collection_fee': result.get('MONEY_COLLECTION_FEE', 0.0),
-                'money_other_fee': result.get('MONEY_OTHER_FEE', 0.0),
-                'money_vas': result.get('MONEY_VAS', 0.0),
-                'money_vat': result.get('MONEY_VAT', 0.0),
-                'kpi_ht': result.get('KPI_HT', 0),
-                'vtp_response': str(result),
-            }
+        # Kết quả lỗi từ service sẽ là dict chứa khóa 'error' hoặc False
+        if not result or (isinstance(result, dict) and result.get('error')):
+            error_msg = result.get('error') if isinstance(result, dict) else _('Unknown error')
+            if error_msg == 'ViettelPost API Error: Price does not apply to this itinerary!':
+                raise UserError(_('Giá không áp dụng cho tuyến này!'))
+            raise UserError(_('Không thể tra phí vận đơn. Chi tiết: %s') % error_msg)
+
+        pricing_vals = {
+            'name': self.sale_order_id.name or _('Tra cước'),
+            'store_id': self.store_id.id,
+            # Lưu ý: nếu trường trên model pricing là mã dịch vụ (char), cần map cho đúng
+            'service_code': self.service_type.id if self.service_type else False,
+            'sale_order_id': self.sale_order_id.id,
+            'money_total_old': result.get('MONEY_TOTAL', 0.0),
+            'money_total': result.get('MONEY_TOTAL', 0.0),
+            'money_total_fee': result.get('MONEY_TOTAL_FEE', 0.0),
+            'money_fee': result.get('MONEY_FEE', 0.0),
+            'money_collection_fee': result.get('MONEY_COLLECTION_FEE', 0.0),
+            'money_other_fee': result.get('MONEY_OTHER_FEE', 0.0),
+            'money_vas': result.get('MONEY_VAS', 0.0),
+            'money_vat': result.get('MONEY_VAT', 0.0),
+            'kpi_ht': result.get('KPI_HT', 0),
+            'vtp_response': str(result),
+        }
+
+        try:
             if self.pricing_id:
                 self.pricing_id.write(pricing_vals)
             else:
                 self.pricing_id = self.env['vtp.pricing'].create(pricing_vals)
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': self._name,
-                'res_id': self.id,
-                'view_mode': 'form',
-                'target': 'new',
+        except Exception as e:
+            _logger.error("Lỗi khi lưu kết quả tra cước: %s", e)
+            raise UserError(_('Không thể lưu kết quả tra cước. Chi tiết: %s') % str(e))
+
+        # Lưu lại store được dùng để tra cước vào Sale Order để lần sau tự điền
+        if self.sale_order_id and self.store_id:
+            try:
+                self.sale_order_id.write({'vtp_store_id': self.store_id.id})
+            except Exception as e:
+                _logger.warning("Không thể lưu vtp_store_id vào Sale Order: %s", e)
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Thành công'),
+                'message': _('Đã tra phí vận đơn thành công'),
+                'sticky': False,
+                'type': 'success',
+                'next': {'type': 'ir.actions.act_window_close'},
             }
-        else:
-            raise UserError(_('Lỗi khi tính phí'))
+        }
