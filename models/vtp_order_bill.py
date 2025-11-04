@@ -115,6 +115,9 @@ class VtpOrderBill(models.Model):
             
             if vtp_status:
                 vtp_status = int(vtp_status)
+                
+                #Đưa thành JSON={key: result} => JSON[vtp_status]=picking
+                
                 # Mã 101: ViettelPost yêu cầu hủy đơn hàng
                 if vtp_status == 101:
                     picking.vtp_state = 'canceled'
