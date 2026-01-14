@@ -310,8 +310,8 @@ class VTPService(models.AbstractModel):
         
         for attempt in range(retry_config['max_retries']):
             try:
-                # Get valid token from account
-                token = account.get_valid_token()
+                # Get valid token from account (using sudo due to field restrictions)
+                token = account.sudo().get_valid_token()
                 if not token:
                     error = _('Không thể lấy Token cho tài khoản %s') % account.name
                     self._create_audit_log(
