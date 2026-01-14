@@ -486,6 +486,23 @@ class VTPService(models.AbstractModel):
         except Exception as e:
             _logger.error(f"Failed to create audit log: {e}")
 
+    @api.model
+    def log_webhook_event(self, account, data, success, message, bill=None):
+        """
+        Ghi nhật ký sự kiện Webhook đơn lẻ.
+        Sử dụng phương thức này để ghi lại các kết quả từ checklist webhook.
+        """
+        self._create_audit_log(
+            account=account,
+            endpoint='webhook/order_status',
+            method='POST',
+            request_data=data,
+            success=success,
+            error_message=message if not success else None,
+            response_data={'status': 'logged', 'message': message} if success else None,
+            order_bill=bill
+        )
+
     # ============ Business Methods (All require account) ============
 
     @api.model

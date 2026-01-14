@@ -24,8 +24,11 @@ access_vtp_update_bill_wizard_user,vtp.update.bill.wizard.user,model_vtp_update_
 access_vtp_update_bill_status_wizard_user,vtp.update.bill.status.wizard.user,model_vtp_update_bill_status_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
 access_vtp_print_bill_wizard_user,vtp.print.bill.wizard.user,model_vtp_print_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
 access_vtp_create_bill_wizard_user,vtp.create.bill.wizard.user,model_vtp_create_bill_wizard,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,1
-access_vtp_store_user,vtp.store.user,model_vtp_store,viettel_ingration_odoo_18.group_viettel_post_user,1,0,0,0
-access_vtp_account_user,vtp.account.user,model_vtp_account,viettel_ingration_odoo_18.group_viettel_post_user,1,0,0,0
+access_vtp_store_user,vtp.store.user,model_vtp_store,viettel_ingration_odoo_18.group_viettel_post_user,1,1,0,0
+access_vtp_account_user,vtp.account.user,model_vtp_account,viettel_ingration_odoo_18.group_viettel_post_user,1,1,0,0
+access_vtp_store_user,vtp.store.user,model_vtp_store,viettel_ingration_odoo_18.group_viettel_post_warehouse,1,1,0,0
+access_vtp_account_user,vtp.account.user,model_vtp_account,viettel_ingration_odoo_18.group_viettel_post_warehouse,1,1,0,0
+access_vtp_api_audit_user,vtp.api.audit.user,model_vtp_api_audit,viettel_ingration_odoo_18.group_viettel_post_warehouse,1,1,1,0
 access_vtp_pricing_user,vtp.pricing.user,model_vtp_pricing,viettel_ingration_odoo_18.group_viettel_post_user,1,1,1,0
 access_vtp_service_bill_user,vtp.service.bill.user,model_vtp_service_bill,viettel_ingration_odoo_18.group_viettel_post_user,1,0,0,0
 access_vtp_province_user,vtp.province.user,model_vtp_province,viettel_ingration_odoo_18.group_viettel_post_user,1,0,0,0

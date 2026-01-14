@@ -119,14 +119,22 @@
         <field name="model">vtp.order.bill</field>
         <field name="arch" type="xml">
             <search string="Tìm kiếm vận đơn">
-                <field name="name"/>
-                <field name="order_id"/>
-                <field name="sale_id"/>
-                <field name="store_id"/>
-                <field name="order_number"/>
+                <field name="name" string="Mã đơn hàng" filter_domain="['|', ('name', 'ilike', self), ('order_number', 'ilike', self)]"/>
+                <field name="order_id" string="Phiếu giao hàng"/>
+                <field name="sale_id" string="Đơn bán hàng"/>
+                <field name="store_id" string="Store"/>
+                <field name="account_id" string="Tài khoản VTP"/>
+                <field name="order_number" string="Mã vận đơn VTP"/>
+                <separator/>
+                <filter string="Có mã vận đơn VTP" name="has_order_number" domain="[('order_number', '!=', False)]"/>
+                <filter string="Chưa có mã vận đơn" name="no_order_number" domain="[('order_number', '=', False)]"/>
+                <separator/>
                 <group expand="0" string="Group By">
                     <filter string="Trạng thái" name="group_by_status" context="{'group_by': 'status_name'}"/>
                     <filter string="Store" name="group_by_store" context="{'group_by': 'store_id'}"/>
+                    <filter string="Tài khoản VTP" name="group_by_account" context="{'group_by': 'account_id'}"/>
+                    <filter string="Đơn bán hàng" name="group_by_sale" context="{'group_by': 'sale_id'}"/>
+                    <filter string="Phiếu giao hàng" name="group_by_picking" context="{'group_by': 'order_id'}"/>
                 </group>
             </search>
         </field>

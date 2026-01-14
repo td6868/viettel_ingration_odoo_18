@@ -62,6 +62,13 @@ class VTPAccount(models.Model):
     store_ids = fields.One2many('vtp.store', 'account_id', string='Danh sách Store')
     api_audit_ids = fields.One2many('vtp.api.audit', 'account_id', string='API Audit Logs')
     
+    # Webhook Security
+    webhook_token = fields.Char(
+        string='Webhook Token', 
+        help='Token bí mật để xác thực webhook từ ViettelPost cho tài khoản này',
+        groups='viettel_ingration_odoo_18.group_viettel_post_admin'
+    )
+    
     # ============ Password Encryption ============
     
     @api.depends('password_encrypted')

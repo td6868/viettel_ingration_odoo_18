@@ -13,6 +13,38 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# ============ ViettelPost Status Flow Configuration ============
+# Trạng thái cho phép chuyển từ → đến (theo luồng VTP)
+VALID_TRANSITIONS = {
+    None: [101, 102, 103, 104, 105],       # Từ mới tạo
+    102: [103, 104, 105, 107, 200],        # Chờ xử lý
+    103: [104, 105, 106, 200, 201],        # Giao cho bưu cục
+    104: [105, 106, 200],                  # Giao bưu tá đi nhận
+    105: [200, 300],                       # Bưu tá đã nhận
+    106: [107, 200],                       # Đối tác yêu cầu lấy lại
+    107: [101],                            # Đối tác yêu cầu hủy qua API
+    200: [201, 202, 300],                  # Nhận từ bưu tá - Bưu cục gốc
+    201: [],                               # Hủy nhập phiếu gửi - FINAL
+    202: [300],                            # Sửa phiếu gửi
+    300: [400],                            # Khai thác đi
+    400: [500],                            # Khai thác đến
+    500: [501, 502, 503, 505, 506, 507, 508, 509],  # Đang giao
+    501: [],                               # Phát thành công - FINAL
+    502: [504, 505, 515, 550],             # Chuyển hoàn
+    503: [],                               # Hủy - FINAL
+    504: [],                               # Chuyển trả thành công - FINAL
+    505: [515, 550],                       # Tồn chuyển hoàn
+    506: [508, 515],                       # Tồn - KH nghỉ
+    507: [501, 508],                       # Tồn - KH đến nhận
+    508: [500, 501, 502],                  # Phát tiếp
+    509: [400],                            # Chuyển tiếp BC khác
+    515: [504, 550],                       # Duyệt hoàn
+    550: [500, 501, 502],                  # Phát tiếp
+}
+
+# Các trạng thái cuối - không cho phép cập nhật tiếp
+FINAL_STATES = [101, 201, 501, 503, 504]
+
 
 class VtpOrderBill(models.Model):
     _name = 'vtp.order.bill'
@@ -124,21 +156,74 @@ class VtpOrderBill(models.Model):
     
     @api.model
     def create_update_bill_from_webhook(self, data):
-        """Tạo hoặc cập nhật vận đơn từ dữ liệu webhook"""
+        """
+        Tạo hoặc cập nhật vận đơn từ dữ liệu webhook.
+        
+        Checklist compliance:
+        - Từ chối đơn lạ không có trong hệ thống
+        - Block cập nhật nếu đã ở trạng thái cuối
+        - Validate luồng chuyển trạng thái
+        - Ghi UNIFIED Audit Log cho mọi sự kiện
+        """
+        vtp_service = self.env['vtp.service']
         order_number = data.get('ORDER_NUMBER')
         order_reference = data.get('ORDER_REFERENCE')
+        new_status = data.get('ORDER_STATUS')
+        
+        if new_status:
+            new_status = int(new_status)
 
         if not order_number:
-            _logger.warning("ORDER_NUMBER not found in webhook data.")
+            _logger.warning("VTP Webhook: ORDER_NUMBER not found in data.")
             return False
 
+        # Tìm bill và picking hiện có
         bill = self.search([('order_number', '=', order_number)], limit=1)
-
-        # Get picking to find store
         picking = self.env['stock.picking'].search([('name', '=', order_reference)], limit=1)
-        store_id = picking.vtp_store_id.id if picking and picking.vtp_store_id else False
         
-        # If no store in picking, try current bill
+        # Xác định account để ghi log
+        account = False
+        if bill and bill.account_id:
+            account = bill.account_id
+        elif picking and picking.vtp_store_id and picking.vtp_store_id.account_id:
+            account = picking.vtp_store_id.account_id
+            
+        # ============ CHECKLIST 5 & 6: Từ chối đơn lạ ============
+        if not bill and not picking:
+            msg = f"Rejected unknown order: ref={order_reference}"
+            _logger.warning(f"VTP Webhook: {msg} (Order: {order_number})")
+            if account:
+                vtp_service.log_webhook_event(account, data, False, msg)
+            return False
+        
+        # ============ CHECKLIST 8: Block trạng thái cuối ============
+        if bill and bill.vtp_order_status in FINAL_STATES:
+            msg = f"Ignored: Bill is in final state {bill.vtp_order_status}"
+            _logger.info(f"VTP Webhook: {msg} ({bill.name})")
+            # Ghi history
+            self.env['vtp.order.bill.history'].create_bill_history_from_webhook(bill.id, data)
+            # Ghi audit log
+            if account:
+                vtp_service.log_webhook_event(account, data, True, msg, bill=bill)
+            return bill
+        
+        # ============ CHECKLIST 7: Validate transition ============
+        if bill and bill.vtp_order_status:
+            current_status = bill.vtp_order_status
+            valid_next_states = VALID_TRANSITIONS.get(current_status, [])
+            
+            if new_status and new_status not in valid_next_states:
+                msg = f"Chuyển trạng thái không hợp lệ {current_status} -> {new_status}"
+                _logger.warning(f"VTP Webhook: {msg} (Bill: {bill.name})")
+                # Ghi history
+                self.env['vtp.order.bill.history'].create_bill_history_from_webhook(bill.id, data)
+                # Ghi audit log
+                if account:
+                    vtp_service.log_webhook_event(account, data, False, msg, bill=bill)
+                return bill
+
+        # ============ Xử lý bình thường ============
+        store_id = picking.vtp_store_id.id if picking and picking.vtp_store_id else False
         if not store_id and bill and bill.store_id:
             store_id = bill.store_id.id
         
@@ -155,12 +240,12 @@ class VtpOrderBill(models.Model):
                     return False
         
         bill_data = {
-            'name': order_reference,
+            'name': order_reference or (bill.name if bill else order_number),
             'order_number': order_number,
             'store_id': store_id,
-            'order_id': picking.id if picking else False,
+            'order_id': picking.id if picking else (bill.order_id.id if bill and bill.order_id else False),
             'status_name': data.get('STATUS_NAME'),
-            'vtp_order_status': data.get('ORDER_STATUS'),
+            'vtp_order_status': new_status,
             'vtp_bill_updated_date': parse_vtp_date(data.get('ORDER_STATUSDATE')),
             'vtp_money_collection': data.get('MONEY_COLLECTION', 0.0),
             'vtp_money_totalfee': data.get('MONEY_TOTALFEE', 0.0),
@@ -171,17 +256,21 @@ class VtpOrderBill(models.Model):
         }
 
         if bill:
-            _logger.info(f"Cập nhật bill hiện có: {bill.name}")
+            _logger.info(f"VTP Webhook: Cập nhật vận đơn {bill.name}")
             bill.write(bill_data)
         else:
-            _logger.info(f"Tạo mới bill cho mã vận đơn: {order_number}")
-            if picking:
-                bill_data['order_id'] = picking.id
+            _logger.info(f"VTP Webhook: Tạo mới vận đơn cho order_number={order_number}")
             bill = self.create(bill_data)
+            # Re-fetch account if it was newly created (shouldn't happen with checklists, but safe)
+            if not account:
+                account = bill.account_id
+
+        # Log success audit
+        if account:
+            vtp_service.log_webhook_event(account, data, True, f"Updated status to {new_status}", bill=bill)
 
         # Cập nhật trạng thái của picking theo trạng thái của ViettelPost
         if picking:
-            vtp_status = data.get('ORDER_STATUS')
             status_mapping = {
                 101: 'canceled',        # ViettelPost yêu cầu hủy đơn hàng
                 102: 'waiting_webhook', # Đơn hàng chờ xử lý
@@ -214,10 +303,8 @@ class VtpOrderBill(models.Model):
                 'vtp_status_name': data.get('STATUS_NAME')
             }
 
-            if vtp_status:
-                vtp_status = int(vtp_status)
-                if vtp_status in status_mapping:
-                    vals['vtp_state'] = status_mapping[vtp_status]
+            if new_status and new_status in status_mapping:
+                vals['vtp_state'] = status_mapping[new_status]
 
             picking.write(vals)
 

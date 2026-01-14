@@ -43,6 +43,8 @@
                     <group string="Thông tin API">
                         <group>
                             <field name="last_api_call" readonly="1"/>
+                            <field name="webhook_token" password="True" 
+                                   placeholder="Token bí mật cho webhook (tùy chọn)"/>
                         </group>
                         <group>
                             <field name="last_error" readonly="1" 
