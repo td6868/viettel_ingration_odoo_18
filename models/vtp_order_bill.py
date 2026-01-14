@@ -1,17 +1,40 @@
+# -*- coding: utf-8 -*-
+"""
+VTP Order Bill Models - Enhanced with:
+- Account relationship for multi-account support
+- Token usage tracking for audit
+- API audit log integration
+"""
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from datetime import datetime
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class VtpOrderBill(models.Model):
     _name = 'vtp.order.bill'
     _description = 'ViettelPost Order Bill'
 
     name = fields.Char(string='Mã đơn hàng', required=True)
-    store_id = fields.Many2one('vtp.store', string='Store ViettelPost')
-    order_id = fields.Many2one('stock.picking', string='Phiếu giao hàng')
+    store_id = fields.Many2one('vtp.store', string='Store ViettelPost', index=True)
+    
+    # Account relationship - computed from store for multi-account support
+    account_id = fields.Many2one(
+        'vtp.account', 
+        string='Tài khoản VTP',
+        compute='_compute_account_id',
+        store=True,
+        index=True,
+        readonly=True
+    )
+    
+    order_id = fields.Many2one('stock.picking', string='Phiếu giao hàng', index=True)
     sale_id = fields.Many2one('sale.order', related='order_id.sale_id', store=True, string='Đơn hàng')
     expected_delivery_date = fields.Date(string='Ngày giao hàng')
-    order_number = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True)
+    order_number = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True, index=True)
     status_name = fields.Char(string='Trạng thái vận đơn', copy=False, readonly=True)
     vtp_bill_updated_date = fields.Datetime(string='Cập nhật lần cuối', readonly=True)
     vtp_order_status = fields.Integer(string='Mã trạng thái', copy=False, readonly=True)
@@ -23,6 +46,28 @@ class VtpOrderBill(models.Model):
     vtp_pricing_ids = fields.One2many('vtp.pricing', 'order_id', string='Dịch vụ')
     bill_history_ids = fields.One2many('vtp.order.bill.history', 'bill_id', string='Lịch sử vận đơn')
     
+    # Token usage tracking - for audit "đơn này dùng token nào"
+    created_with_token = fields.Char(
+        string='Token used (last 10 chars)', 
+        size=10, 
+        readonly=True,
+        help='Last 10 characters of token used to create this bill'
+    )
+    
+    # API Audit logs
+    api_audit_ids = fields.One2many('vtp.api.audit', 'order_bill_id', string='API Audit Logs')
+    
+    @api.depends('store_id', 'store_id.account_id')
+    def _compute_account_id(self):
+        """Đặt tài khoản từ store"""
+        for record in self:
+            record.account_id = record.store_id.account_id if record.store_id else False
+    
+    def _track_token_usage(self, token):
+        """Theo dõi token được sử dụng để tạo/cập nhật vận đơn"""
+        self.ensure_one()
+        if token:
+            self.created_with_token = token[-10:]  # Only store last 10 chars for security
     
     def action_create_vtp_bill(self):
         """Mở wizard để tạo vận đơn ViettelPost"""
@@ -31,14 +76,24 @@ class VtpOrderBill(models.Model):
             raise UserError(_('Phiếu xuất kho này đã có mã vận đơn ViettelPost!'))
         
         # Kiểm tra địa chỉ giao hàng
-        if not self.order_id.partner_id or not self.order_id.partner_id.street or not self.order_id.partner_id.city:
+        if not self.order_id.partner_id or not self.order_id.partner_id.street:
             raise UserError(_('Vui lòng cập nhật đầy đủ địa chỉ giao hàng!'))
         
-        # Lấy store mặc định nếu chưa có
-        if not self.store_id:
-            default_store_id = int(self.env['ir.config_parameter'].sudo().get_param('viettelpost.default_store_id', default=0))
-            if default_store_id:
-                self.store_id = default_store_id
+        # Lấy store mặc định từ tài khoản
+        default_store = False
+        default_account = False
+        
+        if self.store_id:
+            default_store = self.store_id
+            default_account = self.store_id.account_id
+        else:
+            # Tìm store mặc định
+            default_store = self.env['vtp.store'].search([
+                ('is_default', '=', True),
+                ('active', '=', True)
+            ], limit=1)
+            if default_store:
+                default_account = default_store.account_id
         
         return {
             'name': _('Tạo vận đơn ViettelPost'),
@@ -48,34 +103,56 @@ class VtpOrderBill(models.Model):
             'target': 'new',
             'context': {
                 'default_picking_id': self.order_id.id,
-                'default_partner_id': self.sale_id.partner_id.id,
+                'default_partner_id': self.sale_id.partner_id.id if self.sale_id else False,
                 'default_order_bill_id': self.id,
-                'default_store_id': self.store_id.id if self.store_id else False,
-                'default_account_id': self.store_id.account_id.id if self.store_id and self.store_id.account_id else False,
-                'default_cod_amount': self.vtp_cod_amount,
-                'default_insurance_value': self.vtp_insurance_value,
-                'default_note': self.vtp_note,
+                'default_store_id': default_store.id if default_store else False,
+                'default_account_id': default_account.id if default_account else False,
             }
         }
+    
+    def action_view_audit_logs(self):
+        """Xem API audit logs cho vận đơn này"""
+        self.ensure_one()
+        return {
+            'name': _('API Audit Logs'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'vtp.api.audit',
+            'view_mode': 'tree,form',
+            'domain': [('order_bill_id', '=', self.id)],
+            'context': {'default_order_bill_id': self.id},
+        }
+    
     @api.model
     def create_update_bill_from_webhook(self, data):
-        
+        """Tạo hoặc cập nhật vận đơn từ dữ liệu webhook"""
         order_number = data.get('ORDER_NUMBER')
         order_reference = data.get('ORDER_REFERENCE')
 
         if not order_number:
-            print("ORDER_NUMBER not found in webhook data.")
+            _logger.warning("ORDER_NUMBER not found in webhook data.")
             return False
 
         bill = self.search([('order_number', '=', order_number)], limit=1)
 
-        # Lấy thông tin picking để lấy store
+        # Get picking to find store
         picking = self.env['stock.picking'].search([('name', '=', order_reference)], limit=1)
         store_id = picking.vtp_store_id.id if picking and picking.vtp_store_id else False
         
-        # Nếu không có store trong picking, thử tìm trong bill hiện tại
+        # If no store in picking, try current bill
         if not store_id and bill and bill.store_id:
             store_id = bill.store_id.id
+        
+        # Parse dates safely
+        def parse_vtp_date(date_str):
+            if not date_str:
+                return False
+            try:
+                return datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                try:
+                    return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    return False
         
         bill_data = {
             'name': order_reference,
@@ -84,127 +161,83 @@ class VtpOrderBill(models.Model):
             'order_id': picking.id if picking else False,
             'status_name': data.get('STATUS_NAME'),
             'vtp_order_status': data.get('ORDER_STATUS'),
-            'vtp_bill_updated_date': datetime.strptime(data.get('ORDER_STATUSDATE'), '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S') if data.get('ORDER_STATUSDATE') else False,
+            'vtp_bill_updated_date': parse_vtp_date(data.get('ORDER_STATUSDATE')),
             'vtp_money_collection': data.get('MONEY_COLLECTION', 0.0),
             'vtp_money_totalfee': data.get('MONEY_TOTALFEE', 0.0),
             'vtp_money_total': data.get('MONEY_TOTAL', 0.0),
             'vtp_receiver_fullname': data.get('RECEIVER_FULLNAME'),
             'vtp_product_weight': data.get('PRODUCT_WEIGHT', 0.0),
-            'expected_delivery_date': datetime.strptime(data.get('EXPECTED_DELIVERY_DATE'), '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S') if data.get('EXPECTED_DELIVERY_DATE') else False,
+            'expected_delivery_date': parse_vtp_date(data.get('EXPECTED_DELIVERY_DATE')),
         }
 
         if bill:
-            print(f"Updating existing bill: {bill.name}")
+            _logger.info(f"Cập nhật bill hiện có: {bill.name}")
             bill.write(bill_data)
         else:
-            print(f"Creating new bill for order number: {order_number}")
+            _logger.info(f"Tạo mới bill cho mã vận đơn: {order_number}")
             if picking:
                 bill_data['order_id'] = picking.id
-                bill_data['sale_id'] = picking.sale_id.id if picking.sale_id else False
             bill = self.create(bill_data)
 
-
-        # Cập nhật trạng thái picking dựa trên trạng thái từ ViettelPost
-        if picking or picking.vtp_state == 'waiting_webhook':
+        # Cập nhật trạng thái của picking theo trạng thái của ViettelPost
+        if picking:
             vtp_status = data.get('ORDER_STATUS')
-            # Cập nhật order_number và status_name cho picking
-            picking.write({
+            status_mapping = {
+                101: 'canceled',        # ViettelPost yêu cầu hủy đơn hàng
+                102: 'waiting_webhook', # Đơn hàng chờ xử lý
+                103: 'created',         # Giao cho bưu cục
+                104: 'created',         # Giao cho Bưu tá đi nhận
+                105: 'created',         # Bưu tá đã nhận hàng
+                106: 'created',         # Đối tác yêu cầu lấy lại hàng
+                107: 'draft',           # Đối tác yêu cầu hủy qua API
+                200: 'created',         # Nhận từ bưu tá - Bưu cục gốc
+                201: 'canceled',        # Hủy nhập phiếu gửi
+                202: 'created',         # Sửa phiếu gửi
+                300: 'created',         # Khai thác đi
+                400: 'created',         # Khai thác đến
+                500: 'created',         # Giao bưu tá đi phát
+                501: 'done',            # Phát thành công
+                502: 'created',         # Chuyển hoàn bưu cục gốc
+                503: 'canceled',        # Hủy - Theo yêu cầu khách hàng
+                504: 'done',            # Thành công - Chuyển trả cho người gửi
+                505: 'created',         # Tồn - Thông báo chuyển hoàn bưu cục gốc
+                506: 'created',         # Tồn - Khách hàng nghỉ, không có nhà
+                507: 'created',         # Tồn - Khách hàng đến bưu cục nhận
+                508: 'created',         # Phát tiếp
+                509: 'created',         # Chuyển tiếp bưu cục khác
+                515: 'created',         # Duyệt hoàn
+                550: 'created',         # Phát tiếp
+            }
+
+            vals = {
                 'vtp_order_number': order_number,
                 'vtp_status_name': data.get('STATUS_NAME')
-            })
-            
+            }
+
             if vtp_status:
                 vtp_status = int(vtp_status)
-                
-                #Đưa thành JSON={key: result} => JSON[vtp_status]=picking
-                
-                # Mã 101: ViettelPost yêu cầu hủy đơn hàng
-                if vtp_status == 101:
-                    picking.vtp_state = 'canceled'
-                # Mã 102: Đơn hàng chờ xử lý
-                elif vtp_status == 102:
-                    picking.vtp_state = 'waiting_webhook'
-                # Mã 103: Giao cho bưu cục
-                elif vtp_status == 103:
-                    picking.vtp_state = 'created'
-                # Mã 104: Giao cho Bưu tá đi nhận
-                elif vtp_status == 104:
-                    picking.vtp_state = 'created'
-                # Mã 105: Bưu tá đã nhận hàng
-                elif vtp_status == 105:
-                    picking.vtp_state = 'created'
-                # Mã 106: Đối tác yêu cầu lấy lại hàng
-                elif vtp_status == 106:
-                    picking.vtp_state = 'created'
-                # Mã 107: Đối tác yêu cầu hủy qua API
-                elif vtp_status == 107:
-                    picking.vtp_state = 'draft'
-                # Mã 200: Nhận từ bưu tá - Bưu cục gốc
-                elif vtp_status == 200:
-                    picking.vtp_state = 'created'
-                # Mã 201: Hủy nhập phiếu gửi
-                elif vtp_status == 201:
-                    picking.vtp_state = 'canceled'
-                # Mã 202: Sửa phiếu gửi
-                elif vtp_status == 202:
-                    picking.vtp_state = 'created'
-                # Mã 300: Khai thác đi
-                elif vtp_status == 300:
-                    picking.vtp_state = 'created'
-                # Mã 400: Khai thác đến
-                elif vtp_status == 400:
-                    picking.vtp_state = 'created'
-                # Mã 500: Giao bưu tá đi phát
-                elif vtp_status == 500:
-                    picking.vtp_state = 'created'
-                # Mã 501: Phát thành công
-                elif vtp_status == 501:
-                    picking.vtp_state = 'done'
-                # Mã 502: Chuyển hoàn bưu cục gốc
-                elif vtp_status == 502:
-                    picking.vtp_state = 'created'
-                # Mã 503: Hủy - Theo yêu cầu khách hàng
-                elif vtp_status == 503:
-                    picking.vtp_state = 'canceled'
-                # Mã 504: Thành công - Chuyển trả cho người gửi
-                elif vtp_status == 504:
-                    picking.vtp_state = 'done'
-                # Mã 505: Tồn - Thông báo chuyển hoàn bưu cục gốc
-                elif vtp_status == 505:
-                    picking.vtp_state = 'created'
-                # Mã 506: Tồn - Khách hàng nghỉ, không có nhà
-                elif vtp_status == 506:
-                    picking.vtp_state = 'created'
-                # Mã 507: Tồn - Khách hàng đến bưu cục nhận
-                elif vtp_status == 507:
-                    picking.vtp_state = 'created'
-                # Mã 508: Phát tiếp
-                elif vtp_status == 508:
-                    picking.vtp_state = 'created'
-                # Mã 509: Chuyển tiếp bưu cục khác
-                elif vtp_status == 509:
-                    picking.vtp_state = 'created'
-                # Mã 515: Duyệt hoàn
-                elif vtp_status == 515:
-                    picking.vtp_state = 'created'
-                # Mã 550: Phát tiếp
-                elif vtp_status == 550:
-                    picking.vtp_state = 'created'
+                if vtp_status in status_mapping:
+                    vals['vtp_state'] = status_mapping[vtp_status]
 
-        # Tạo lịch sử bill
+            picking.write(vals)
+
+        # Create bill history
         self.env['vtp.order.bill.history'].create_bill_history_from_webhook(bill.id, data)
         return bill
-    
+
+
 class VtpOrderBillHistory(models.Model):
     _name = 'vtp.order.bill.history'
     _description = 'ViettelPost Order Bill History'
-    bill_id = fields.Many2one('vtp.order.bill', string='Vận đơn')
-    name = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True)
-    order_id = fields.Many2one('stock.picking', string='Phiếu giao hàng')
+    _order = 'order_status_date desc'
     
-    order_number = fields.Char("Mã đơn hàng VTP")
+    bill_id = fields.Many2one('vtp.order.bill', string='Vận đơn', ondelete='cascade', index=True)
+    name = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True)
+    order_id = fields.Many2one('stock.picking', string='Phiếu giao hàng', index=True)
+    
+    order_number = fields.Char("Mã đơn hàng VTP", index=True)
     order_reference = fields.Char("Mã đơn hàng")
-    order_status_date = fields.Datetime(string='Ngày thay đổi')
+    order_status_date = fields.Datetime(string='Ngày thay đổi', index=True)
     order_status = fields.Integer("Mã trạng thái")
     status_name = fields.Char("Tên trạng thái")
     location_currently = fields.Char("Địa điểm hiện tại")
@@ -220,15 +253,26 @@ class VtpOrderBillHistory(models.Model):
     order_payment = fields.Integer("Phương thức thanh toán")
     order_service = fields.Char("Dịch vụ")
     is_returning = fields.Boolean("Trả hàng")
-    is_returning = fields.Boolean("Trả hàng")
 
     @api.model
     def create_bill_history_from_webhook(self, bill_id, data):
-
+        """Tạo lịch sử vận đơn từ dữ liệu webhook"""
         order_number = data.get('ORDER_NUMBER')
         order_reference = data.get('ORDER_REFERENCE')
 
         bill = self.env['vtp.order.bill'].browse(bill_id)
+        
+        # Parse dates safely
+        def parse_vtp_date(date_str):
+            if not date_str:
+                return False
+            try:
+                return datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                try:
+                    return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    return False
 
         history_data = {
             'bill_id': bill.id,
@@ -236,7 +280,7 @@ class VtpOrderBillHistory(models.Model):
             'order_id': bill.order_id.id if bill.order_id else False,
             'order_number': order_number,
             'order_reference': order_reference,
-            'order_status_date': datetime.strptime(data.get('ORDER_STATUSDATE'), '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S') if data.get('ORDER_STATUSDATE') else False,
+            'order_status_date': parse_vtp_date(data.get('ORDER_STATUSDATE')),
             'order_status': data.get('ORDER_STATUS'),
             'status_name': data.get('STATUS_NAME'),
             'location_currently': data.get('LOCATION_CURRENTLY'),
@@ -249,32 +293,53 @@ class VtpOrderBillHistory(models.Model):
             'product_weight': data.get('PRODUCT_WEIGHT', 0.0),
             'order_service': data.get('ORDER_SERVICE'),
             'order_payment': data.get('ORDER_PAYMENT', 0),
-            'expected_delivery_date': datetime.strptime(data.get('EXPECTED_DELIVERY_DATE'), '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S') if data.get('EXPECTED_DELIVERY_DATE') else False,
+            'expected_delivery_date': parse_vtp_date(data.get('EXPECTED_DELIVERY_DATE')),
             'is_returning': data.get('IS_RETURNING', False),
             'receiver_fullname': data.get('RECEIVER_FULLNAME'),
         }
         self.create(history_data)
 
         return bill
-    
+
+
 class VtpStockPicking(models.Model):
     _inherit = 'stock.picking'
     
     vtp_id = fields.Many2one('vtp.order.bill', string='Vận đơn VTP')
     vtp_order_bill_history_ids = fields.One2many('vtp.order.bill.history', 'order_id', string='Lịch sử vận đơn VTP')
     vtp_store_id = fields.Many2one('vtp.store', string='Store ViettelPost')
+    
+    # Computed account from store
+    vtp_account_id = fields.Many2one(
+        'vtp.account',
+        string='Tài khoản VTP',
+        related='vtp_store_id.account_id',
+        store=True,
+        readonly=True
+    )
+    
     vtp_state = fields.Selection([
         ('draft', 'Nháp'),
         ('waiting_webhook', 'Đang chờ xử lý'),
         ('created', 'Đã tạo'),
         ('done', 'Đã hoàn thành'),
         ('canceled', 'Đã hủy'),
-    ], string='Trạng thái', default='draft')
-    vtp_order_number = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True)
+    ], string='Trạng thái VTP', default='draft')
+    vtp_order_number = fields.Char(string='Mã vận đơn ViettelPost', copy=False, readonly=True, index=True)
     vtp_status_name = fields.Char(string='Trạng thái vận đơn', copy=False, readonly=True)
+
 
 class VtpSaleOrder(models.Model):
     _inherit = 'sale.order'
     
     vtp_id = fields.Many2one('vtp.order.bill', string='Vận đơn VTP')
     vtp_store_id = fields.Many2one('vtp.store', string='Store ViettelPost')
+    
+    # Computed account from store
+    vtp_account_id = fields.Many2one(
+        'vtp.account',
+        string='Tài khoản VTP',
+        related='vtp_store_id.account_id',
+        store=True,
+        readonly=True
+    )

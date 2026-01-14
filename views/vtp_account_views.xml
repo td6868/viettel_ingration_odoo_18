@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- VTP Account Form View -->
+    <!-- VTP Account Form View (Enhanced with Audit Trail) -->
     <record id="view_vtp_account_form" model="ir.ui.view">
         <field name="name">vtp.account.form</field>
         <field name="model">vtp.account</field>
@@ -11,32 +11,47 @@
                     <button name="action_sync_stores" string="Đồng bộ Store" type="object" class="btn-secondary"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_audit_logs" type="object"
+                                class="oe_stat_button" icon="fa-history">
+                            <field name="api_call_count" widget="statinfo" string="API Calls"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Inactive" bg_color="text-bg-danger" 
+                            invisible="active"/>
                     <div class="oe_title">
                         <h1>
                             <field name="name" placeholder="Tên tài khoản"/>
                         </h1>
                     </div>
+                    
                     <group>
-                        <group>
+                        <group string="Thông tin đăng nhập">
                             <field name="username"/>
                             <field name="password" password="True"/>
+                            <field name="userId" readonly="1"/>
+                            <field name="phone" readonly="1"/>
                         </group>
-                        <group>
-                            <field name="client_id"/>
-                            <field name="client_secret" password="True"/>
-                        </group>
-                    </group>
-                    <group>
-                        <group>
-                            <field name="token" readonly="1" invisible="1"/>
-                            <field name="token_expiry" readonly="1"/>
-                        </group>
-                        <group>
-                            <field name="active"/>
+                        <group string="Token">
+                            <field name="token_expiry_display" string="Hết hạn token"/>
+                            <field name="token_last_refresh" readonly="1"/>
+                            <field name="token_refresh_count" readonly="1"/>
+                            <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
+                    
+                    <group string="Thông tin API">
+                        <group>
+                            <field name="last_api_call" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="last_error" readonly="1" 
+                                   invisible="not last_error"/>
+                        </group>
+                    </group>
+                    
                     <notebook>
-                        <page string="Danh sách Store">
+                        <page string="Danh sách Store" name="stores">
                             <field name="store_ids">
                                 <list editable="bottom">
                                     <field name="store_id"/>
@@ -44,11 +59,27 @@
                                     <field name="phone"/>
                                     <field name="address"/>
                                     <field name="is_default"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="API Audit Logs" name="audit_logs" 
+                              groups="viettel_ingration_odoo_18.group_viettel_post_admin">
+                            <field name="api_audit_ids" readonly="1">
+                                <list limit="20" decoration-danger="not success">
+                                    <field name="timestamp"/>
+                                    <field name="endpoint"/>
+                                    <field name="method"/>
+                                    <field name="success"/>
+                                    <field name="http_status"/>
+                                    <field name="duration_ms"/>
+                                    <field name="error_message" optional="show"/>
                                 </list>
                             </field>
                         </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -58,10 +89,16 @@
         <field name="name">vtp.account.list</field>
         <field name="model">vtp.account</field>
         <field name="arch" type="xml">
-            <list string="Tài khoản ViettelPost">
+            <list string="Tài khoản ViettelPost" 
+                  decoration-danger="not active"
+                  decoration-warning="token_expiry_display and token_expiry_display &lt; current_date">
                 <field name="name"/>
                 <field name="username"/>
-                <field name="token_expiry"/>
+                <field name="phone"/>
+                <field name="token_expiry_display" string="Hết hạn token"/>
+                <field name="token_last_refresh"/>
+                <field name="api_call_count"/>
+                <field name="last_api_call"/>
                 <field name="active"/>
             </list>
         </field>
@@ -75,8 +112,17 @@
             <search string="Tìm kiếm tài khoản ViettelPost">
                 <field name="name"/>
                 <field name="username"/>
+                <field name="phone"/>
+                <separator/>
                 <filter string="Hoạt động" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <!-- <filter string="Token sắp hết hạn" name="token_expiring" 
+                        domain="[('token_expiry_display', '&lt;', (context_today() + datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/> -->
+                <filter string="Có lỗi" name="has_error" domain="[('last_error', '!=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Trạng thái" name="group_active" context="{'group_by': 'active'}"/>
+                </group>
             </search>
         </field>
     </record>
@@ -87,9 +133,13 @@
         <field name="res_model">vtp.account</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_vtp_account_search"/>
+        <field name="context">{'search_default_active': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Tạo tài khoản ViettelPost mới
+            </p>
+            <p>
+                Quản lý nhiều tài khoản ViettelPost với token riêng biệt cho mỗi tài khoản.
             </p>
         </field>
     </record>

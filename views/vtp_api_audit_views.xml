@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- VTP API Audit Tree View -->
+    <record id="view_vtp_api_audit_tree" model="ir.ui.view">
+        <field name="name">vtp.api.audit.tree</field>
+        <field name="model">vtp.api.audit</field>
+        <field name="arch" type="xml">
+            <list string="Nhật kí API" create="false" edit="false" 
+                  decoration-danger="not success" decoration-success="success">
+                <field name="timestamp"/>
+                <field name="account_id"/>
+                <field name="endpoint"/>
+                <field name="method"/>
+                <field name="success"/>
+                <field name="http_status"/>
+                <field name="duration_ms" string="Duration (ms)"/>
+                <field name="error_message" optional="show"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- VTP API Audit Form View -->
+    <record id="view_vtp_api_audit_form" model="ir.ui.view">
+        <field name="name">vtp.api.audit.form</field>
+        <field name="model">vtp.api.audit</field>
+        <field name="arch" type="xml">
+            <form string="Nhật kí API" create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="endpoint" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Request Info">
+                            <field name="account_id"/>
+                            <field name="method"/>
+                            <field name="timestamp"/>
+                            <field name="user_id"/>
+                            <field name="order_bill_id"/>
+                        </group>
+                        <group string="Response Info">
+                            <field name="success"/>
+                            <field name="http_status"/>
+                            <field name="duration_ms"/>
+                            <field name="token_used"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Request Data">
+                            <field name="request_data" readonly="1" widget="text"/>
+                        </page>
+                        <page string="Response Data">
+                            <field name="response_data" readonly="1" widget="text"/>
+                        </page>
+                        <page string="Error" invisible="success">
+                            <field name="error_message" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- VTP API Audit Search View -->
+    <record id="view_vtp_api_audit_search" model="ir.ui.view">
+        <field name="name">vtp.api.audit.search</field>
+        <field name="model">vtp.api.audit</field>
+        <field name="arch" type="xml">
+            <search string="Search Audit Logs">
+                <field name="account_id"/>
+                <field name="endpoint"/>
+                <field name="order_bill_id"/>
+                <separator/>
+                <filter string="Success" name="success" domain="[('success', '=', True)]"/>
+                <filter string="Failed" name="failed" domain="[('success', '=', False)]"/>
+                <separator/>
+                <filter string="Today" name="today" 
+                        domain="[('timestamp', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 7 Days" name="week" 
+                        domain="[('timestamp', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Create Bill" name="create_bill" domain="[('endpoint', 'ilike', 'createOrder')]"/>
+                <filter string="Get Price" name="get_price" domain="[('endpoint', 'ilike', 'getPrice')]"/>
+                <filter string="Login" name="login" domain="[('endpoint', 'ilike', 'Login')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Account" name="group_account" context="{'group_by': 'account_id'}"/>
+                    <filter string="Endpoint" name="group_endpoint" context="{'group_by': 'endpoint'}"/>
+                    <filter string="Status" name="group_success" context="{'group_by': 'success'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'timestamp:day'}"/>
+                    <filter string="User" name="group_user" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- VTP API Audit Action -->
+    <record id="action_vtp_api_audit" model="ir.actions.act_window">
+        <field name="name">API Audit Logs</field>
+        <field name="res_model">vtp.api.audit</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_vtp_api_audit_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No API audit logs found
+            </p>
+            <p>
+                API audit logs are automatically created when ViettelPost API calls are made.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_vtp_api_audit"
+              name="Nhật kí API"
+              parent="menu_viettelpost_root"
+              action="action_vtp_api_audit"
+              groups="viettel_ingration_odoo_18.group_viettel_post_admin"
+              sequence="90"/>
+</odoo>

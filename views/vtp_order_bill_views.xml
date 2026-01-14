@@ -10,9 +10,12 @@
                 <field name="order_id"/>
                 <field name="sale_id"/>
                 <field name="store_id"/>
+                <field name="account_id" optional="show"/>
                 <field name="order_number"/>
                 <field name="status_name"/>
                 <field name="expected_delivery_date"/>
+                <field name="created_with_token" optional="hide" 
+                       groups="viettel_ingration_odoo_18.group_viettel_post_admin"/>
             </list>
         </field>
     </record>
@@ -24,6 +27,13 @@
         <field name="arch" type="xml">
             <form string="Vận đơn ViettelPost">
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_audit_logs" type="object"
+                                class="oe_stat_button" icon="fa-history"
+                                groups="viettel_ingration_odoo_18.group_viettel_post_admin">
+                            <span class="o_stat_text">API Logs</span>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Mã đơn hàng"/></h1>
                         <div class="oe_inline">
@@ -32,16 +42,19 @@
                         </div>
                     </div>
                     <group>
-                        <group>
+                        <group string="Thông tin đơn">
                             <field name="order_id"/>
                             <field name="sale_id"/>
                             <field name="store_id"/>
+                            <field name="account_id" string="Tài khoản VTP"/>
                         </group>
-                        <group>
+                        <group string="ViettelPost">
                             <field name="order_number"/>
                             <field name="expected_delivery_date"/>
+                            <field name="created_with_token" string="Token (last 10)" 
+                                   groups="viettel_ingration_odoo_18.group_viettel_post_admin"/>
                         </group>
-                        <group>
+                        <group string="Tài chính">
                             <field name="vtp_order_status"/>
                             <field name="vtp_money_collection"/>
                             <field name="vtp_money_total"/>

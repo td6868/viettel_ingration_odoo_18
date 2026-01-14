@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+VTP Update Bill Wizard - Refactored with:
+- Multi-account support (account from picking's store)
+- Proper validation
+"""
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 import json
@@ -5,31 +12,35 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+
 class VTPUpdateBillWizard(models.TransientModel):
     _name = 'vtp.update.bill.wizard'
     _description = 'Cập nhật đơn ViettelPost'
     _inherit = 'vtp.shipping.wizard.mixin'
 
-    order_bill_id = fields.Many2one('vtp.order.bill.history', string='Vận đơn ViettelPost',  ondelete='cascade')
-    order_status = fields.Integer(string='Trạng thái đơn hàng', related='order_bill_id.order_status', readonly=True);
-    order_number = fields.Char(string = 'Mã vận đơn ViettelPost', required=True)
+    vtp_bill_id = fields.Many2one('vtp.order.bill', string='Vận đơn ViettelPost')
+    order_status = fields.Integer(
+        string='Trạng thái đơn hàng', 
+        related='vtp_bill_id.vtp_order_status', 
+        readonly=True
+    )
+    order_number = fields.Char(string='Mã vận đơn ViettelPost', required=True)
     picking_id = fields.Many2one('stock.picking', string='Phiếu giao hàng', required=True)
-        
 
     @api.onchange('picking_id')
     def _onchange_picking_id(self):
-        """Cập nhật thông tin từ phiếu xuất kho"""
+        """Update information from picking"""
         if self.picking_id:
-            # Gán sẵn tài khoản và store từ phiếu (nếu đã tạo vận đơn trước đó)
+            # Set account and store from picking
             if self.picking_id.vtp_store_id:
                 self.store_id = self.picking_id.vtp_store_id
                 if self.picking_id.vtp_store_id.account_id:
                     self.account_id = self.picking_id.vtp_store_id.account_id
 
-            # Cập nhật thông tin khách hàng
+            # Update customer info
             self.partner_id = self.picking_id.partner_id
 
-            # Cập nhật thông tin người nhận từ partner
+            # Update receiver info from partner
             if self.picking_id.partner_id:
                 partner = self.picking_id.partner_id
                 self.receiver_name = partner.name
@@ -42,60 +53,61 @@ class VTPUpdateBillWizard(models.TransientModel):
                     if province:
                         self.receiver_province_id = province.id
 
-                # Reset để chọn lại quận/huyện
                 self.receiver_district_id = False
                 self.receiver_ward_id = False
 
-            # Build list item từ picking
-            list_item, total_price, total_weight, total_quantity = self._prepare_list_items()
+            # Build list item from picking
+            list_item, unused_p, unused_w, unused_q = self._prepare_list_items()
 
-            # Gán vào wizard
             self.list_item = list_item
-            self.product_price = total_price
-            self.product_weight = total_weight
-            self.product_quantity = total_quantity
-            self.cod_amount = total_price
+            self.product_price = unused_p
+            self.product_weight = unused_w
+            self.product_quantity = unused_q
+            self.cod_amount = unused_p
 
     @api.model
     def default_get(self, fields_list):
-        """Lấy thông tin mặc định từ phiếu giao hàng"""
+        """Get default values from picking"""
         res = super().default_get(fields_list)
+        
         if self._context.get('active_model') == 'stock.picking' and self._context.get('active_id'):
             picking = self.env['stock.picking'].browse(self._context.get('active_id'))
 
+            # Get vtp_bill
+            vtp_bill = self.env['vtp.order.bill'].search([
+                ('order_id', '=', picking.id)
+            ], limit=1)
             
-            # Lấy mã vận đơn từ vtp.order.bill
-            order_bill = self.env['vtp.order.bill'].search([('order_id', '=', picking.id)], limit=1)
-            if order_bill and order_bill.order_number:
-                # Gán picking và mã vận đơn
+            if vtp_bill and vtp_bill.order_number:
                 res.update({
                     'picking_id': picking.id,
-                    'order_number': order_bill.order_number,
+                    'order_number': vtp_bill.order_number,
+                    'vtp_bill_id': vtp_bill.id,
                 })
 
-                # Gán sẵn Store/Account từ picking nếu có
+                # Set Store/Account from picking
                 if picking.vtp_store_id:
                     res.update({
                         'store_id': picking.vtp_store_id.id,
                         'account_id': picking.vtp_store_id.account_id.id if picking.vtp_store_id.account_id else False,
                     })
 
-                # Lấy lịch sử mới nhất của vận đơn để điền các trường liên quan
+                # Get latest history for defaults
                 latest_history = self.env['vtp.order.bill.history'].search([
-                    ('order_number', '=', order_bill.order_number)
+                    ('order_number', '=', vtp_bill.order_number)
                 ], order='create_date desc', limit=1)
+                
                 if latest_history:
-                    # Map service_code -> vtp.service.bill
                     service_id = False
                     if latest_history.order_service:
-                        service = self.env['vtp.service.bill'].search([('service_code', '=', latest_history.order_service)], limit=1)
+                        service = self.env['vtp.service.bill'].search([
+                            ('service_code', '=', latest_history.order_service)
+                        ], limit=1)
                         service_id = service.id if service else False
 
-                    # order_payment trong history là int, selection của wizard là str
                     order_payment_val = str(latest_history.order_payment) if latest_history.order_payment else False
 
                     res.update({
-                        'order_bill_id': latest_history.id,
                         'service_type': service_id,
                         'order_payment': order_payment_val,
                         'product_weight': latest_history.product_weight or 0.0,
@@ -107,17 +119,21 @@ class VTPUpdateBillWizard(models.TransientModel):
         return res
 
     def action_update_bill(self):
-        """Cập nhật vận đơn ViettelPost (chỉ khi ORDER_STATUS < 200)"""
+        """Update ViettelPost bill (only when ORDER_STATUS < 200)"""
         self.ensure_one()
 
-        # Kiểm tra trạng thái đơn hàng
+        # Validate status
         if self.order_status is not False and int(self.order_status) >= 200:
             raise UserError(_('Chỉ được phép cập nhật đơn hàng khi trạng thái < 200.'))
 
+        # Validate account and store
+        if not self.account_id:
+            raise UserError(_('Vui lòng chọn tài khoản ViettelPost!'))
+            
         if not self.store_id:
             raise UserError(_('Vui lòng chọn Store ViettelPost!'))
 
-        # Chuẩn bị LIST_ITEM an toàn
+        # Prepare LIST_ITEM safely
         list_item_payload = self.list_item
         if isinstance(list_item_payload, str):
             try:
@@ -126,13 +142,12 @@ class VTPUpdateBillWizard(models.TransientModel):
                 list_item_payload = []
         if not list_item_payload:
             try:
-                computed_items, _, _, _ = self._prepare_list_items()
+                computed_items, unused_p2, unused_w2, unused_q2 = self._prepare_list_items()
                 list_item_payload = computed_items or []
             except Exception:
                 list_item_payload = []
 
-
-        # Chuẩn bị dữ liệu giống tạo vận đơn
+        # Prepare update data
         data = {
             'ORDER_NUMBER': self.picking_id.vtp_order_number,
             'GROUPADDRESS_ID': '',
@@ -142,14 +157,14 @@ class VTPUpdateBillWizard(models.TransientModel):
             'SENDER_PHONE': self.store_id.phone,
             'RECEIVER_FULLNAME': self.receiver_name,
             'RECEIVER_ADDRESS': self.receiver_address,
-            'PRODUCT_WEIGHT': self.product_weight,
+            'PRODUCT_WEIGHT': int(self.product_weight) if self.product_weight else 0,
             'RECEIVER_PHONE': self.receiver_phone,
-            'ORDER_PAYMENT': int(self.order_payment),
-            'ORDER_SERVICE': self.service_type.service_code,
+            'ORDER_PAYMENT': int(self.order_payment) if self.order_payment else 3,
+            'ORDER_SERVICE': self.service_type.service_code if self.service_type else 'VSL6',
             'PRODUCT_TYPE': 'HH',
         }
 
-        # Thêm kích thước nếu có
+        # Add dimensions if available
         if self.product_length and self.product_width and self.product_height:
             data.update({
                 'PRODUCT_LENGTH': self.product_length,
@@ -157,22 +172,34 @@ class VTPUpdateBillWizard(models.TransientModel):
                 'PRODUCT_HEIGHT': self.product_height,
             })
 
-        _logger.info("Dữ liệu gửi lên API cập nhật vận đơn: %s", data)
+        _logger.info("VTP Update Bill - Account: %s, Data: %s", self.account_id.name, data)
 
+        # Call service with account (NEW: account parameter required)
         VTPService = self.env['vtp.service']
-        result = VTPService.update_bill(data)
+        result = VTPService.update_bill(
+            account=self.account_id,
+            data=data,
+            order_bill=self.vtp_bill_id
+        )
 
-        if result and result.get('ORDER_NUMBER'):
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Thành công',
-                    'message': 'Đã cập nhật vận đơn ViettelPost thành công: %s' % result.get('ORDER_NUMBER'),
-                    'sticky': False,
-                    'type': 'success',
-                    'next': {'type': 'ir.actions.act_window_close'},
-                }
-            }
+        if result and not isinstance(result, dict):
+            # Success
+            return self._success_notification(str(result))
+        elif isinstance(result, dict) and result.get('ORDER_NUMBER'):
+            return self._success_notification(result.get('ORDER_NUMBER'))
         else:
-            raise UserError("Lỗi khi cập nhật vận đơn: " + result.get('error', 'Unknown error'))
+            error_msg = result.get('error', 'Unknown error') if isinstance(result, dict) else str(result)
+            raise UserError(_('Lỗi khi cập nhật vận đơn: %s') % error_msg)
+    
+    def _success_notification(self, order_number):
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Thành công'),
+                'message': _('Đã cập nhật vận đơn ViettelPost thành công: %s') % order_number,
+                'sticky': False,
+                'type': 'success',
+                'next': {'type': 'ir.actions.act_window_close'},
+            }
+        }

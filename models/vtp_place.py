@@ -1,5 +1,5 @@
 from odoo import models, fields, api
-from odoo.addons.viettelpost.models.vtp_store import VTPStore
+from .vtp_store import VTPStore
 
 class VTPProvince(models.Model):
     _name = 'vtp.province'

@@ -1,4 +1,5 @@
 # from . import res_config_settings
+from . import vtp_api_audit
 from . import vtp_place
 from . import vtp_order_bill
 from . import vtp_pricing

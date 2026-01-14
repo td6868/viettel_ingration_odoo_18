@@ -7,7 +7,9 @@
         <field name="arch" type="xml">
             <form string="Store ViettelPost">
                 <header>
-                    <button name="action_set_default" string="Đặt làm mặc định" type="object" class="btn-primary" invisible="is_default"/>
+                    <button name="action_set_default" string="Đặt làm mặc định" type="object" class="btn-primary" 
+                        invisible="is_default" 
+                        groups="viettel_ingration_odoo_18.group_viettel_post_admin"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -106,7 +108,7 @@
     <menuitem id="menu_viettelpost_root" 
         name="ViettelPost" 
         web_icon="viettel_ingration_odoo_18,static/description/vtp.png"
-        groups="viettel_ingration_odoo_18.group_viettel_post_admin"
+        groups="viettel_ingration_odoo_18.group_viettel_post_user"
         sequence="100"/>
-    <menuitem id="menu_vtp_store" name="Store ViettelPost" parent="menu_viettelpost_root" action="action_vtp_store" groups="viettel_ingration_odoo_18.group_viettel_post_admin" sequence="10"/>
+    <menuitem id="menu_vtp_store" name="Store ViettelPost" parent="menu_viettelpost_root" action="action_vtp_store" groups="viettel_ingration_odoo_18.group_viettel_post_user" sequence="10"/>
 </odoo>
